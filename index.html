@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SECOMP 26 — A Semana de Computação do IC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-black: #050208;
+      --bg-purple: #2a0a52;
+      --neon-teal: #22bda0;
+      --neon-purple: #5d13b7;
+      --ink: #f4f2fa;
+      --ink-dim: #b9b3cf;
+      --grid-line: rgba(34, 189, 160, 0.28);
+      --box-bg: #22bda0;
+      --box-ink: #061412;
+      --vignette-a: 0.9;
+    }
+
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) {
+        --bg-black: #f4f2fa;
+        --bg-purple: #cdb8ec;
+        --ink: #150a24;
+        --ink-dim: #4d4460;
+        --grid-line: rgba(93, 19, 183, 0.22);
+        --box-bg: #22bda0;
+        --box-ink: #06251f;
+        --vignette-a: 0.35;
+      }
+    }
+
+    :root[data-theme="light"] {
+      --bg-black: #f4f2fa;
+      --bg-purple: #cdb8ec;
+      --ink: #150a24;
+      --ink-dim: #4d4460;
+      --grid-line: rgba(93, 19, 183, 0.22);
+      --box-bg: #22bda0;
+      --box-ink: #06251f;
+      --vignette-a: 0.35;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: var(--bg-black);
+    }
+
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+      font-family: 'Silkscreen', 'Courier New', monospace;
+      color: var(--ink);
+      position: relative;
+    }
+
+    /* ---------- backdrop ---------- */
+
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: var(--bg-black);
+      overflow: hidden;
+    }
+
+    .side-glow {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg,
+          var(--bg-purple) 0%,
+          transparent 22%,
+          transparent 78%,
+          var(--bg-purple) 100%);
+      opacity: var(--vignette-a);
+    }
+
+    .grid {
+      position: absolute;
+      left: -25%;
+      right: -25%;
+      top: 8%;
+      bottom: -20%;
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+      background-size: 56px 56px;
+      transform: perspective(560px) rotateX(60deg);
+      transform-origin: center top;
+      animation: moveGrid 1.6s linear infinite;
+    }
+
+    @keyframes moveGrid {
+      from {
+        background-position: 0 0;
+      }
+
+      to {
+        background-position: 0 56px;
+      }
+    }
+
+    .grid-fade {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 55% at 50% 30%,
+          transparent 0%,
+          transparent 35%,
+          var(--bg-black) 78%);
+    }
+
+    /* ---------- layout ---------- */
+
+    .page {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: clamp(20px, 3.5vw, 44px);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .topbar svg {
+      width: clamp(20px, 2.2vw, 26px);
+      height: auto;
+      color: var(--ink);
+    }
+
+    .handle {
+      font-size: clamp(14px, 1.6vw, 20px);
+      letter-spacing: 0.03em;
+      color: var(--ink);
+    }
+
+    /* vertical looping marquee, pinned to the right edge */
+    .side-marquee {
+      position: fixed;
+      top: 0;
+      right: clamp(6px, 1.6vw, 22px);
+      height: 100vh;
+      width: 24px;
+      overflow: hidden;
+      z-index: 1;
+      pointer-events: none;
+      mask-image: linear-gradient(to bottom, transparent, black 12%, black 88%, transparent);
+      -webkit-mask-image: linear-gradient(to bottom, transparent, black 12%, black 88%, transparent);
+    }
+
+    .side-marquee__track {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      animation: scrollUp 16s linear infinite;
+    }
+
+    .side-marquee__item {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      white-space: nowrap;
+      font-size: clamp(10px, 1vw, 13px);
+      letter-spacing: 0.35em;
+      color: var(--ink-dim);
+      padding: 0 0 26px 0;
+    }
+
+    @keyframes scrollUp {
+      from {
+        transform: translateY(0);
+      }
+
+      to {
+        transform: translateY(-50%);
+      }
+    }
+
+    /* ---------- hero ---------- */
+
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: clamp(10px, 1.6vw, 18px);
+      margin: auto 0;
+      padding: 24px 12px;
+    }
+
+    .ic-logo {
+      width: clamp(46px, 5.2vw, 64px);
+      height: auto;
+      color: var(--ink);
+    }
+
+    .ic-logo path {
+      fill: currentColor;
+    }
+
+    .secomp-logo {
+      width: min(92vw, 640px);
+      height: auto;
+    }
+
+    .subtitle {
+      font-size: clamp(15px, 2vw, 24px);
+      line-height: 1.5;
+      color: var(--ink);
+      margin: 6px 0 4px;
+    }
+
+    .subtitle strong {
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    /* ---------- countdown ---------- */
+
+    .countdown {
+      display: flex;
+      gap: clamp(10px, 1.6vw, 20px);
+      margin-top: clamp(14px, 2.2vw, 22px);
+    }
+
+    .count-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .count-box {
+      width: clamp(56px, 8vw, 92px);
+      height: clamp(56px, 8vw, 92px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--box-bg);
+      color: var(--box-ink);
+      font-size: clamp(24px, 3.6vw, 42px);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .count-label {
+      font-size: clamp(11px, 1.2vw, 15px);
+      letter-spacing: 0.08em;
+      color: var(--ink-dim);
+    }
+
+    /* ---------- footer ---------- */
+
+    .footer {
+      text-align: center;
+      font-size: clamp(11px, 1.3vw, 15px);
+      letter-spacing: 0.18em;
+      color: var(--ink-dim);
+      padding-top: 20px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      .grid,
+      .side-marquee__track {
+        animation: none;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .side-marquee {
+        display: none;
+      }
+
+      .countdown {
+        gap: 8px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="backdrop">
+    <div class="side-glow"></div>
+    <div class="grid"></div>
+    <div class="grid-fade"></div>
+  </div>
+
+  <div class="side-marquee" aria-hidden="true">
+    <div class="side-marquee__track">
+      <span class="side-marquee__item">EXPANDIR PARA CONECTAR&nbsp;&nbsp;·&nbsp;&nbsp;EXPANDIR PARA
+        CONECTAR&nbsp;&nbsp;·&nbsp;&nbsp;EXPANDIR PARA CONECTAR&nbsp;&nbsp;·&nbsp;&nbsp;EXPANDIR PARA CONECTAR</span>
+      <span class="side-marquee__item">EXPANDIR PARA CONECTAR&nbsp;&nbsp;·&nbsp;&nbsp;EXPANDIR PARA
+        CONECTAR&nbsp;&nbsp;·&nbsp;&nbsp;EXPANDIR PARA CONECTAR&nbsp;&nbsp;·&nbsp;&nbsp;EXPANDIR PARA CONECTAR</span>
+    </div>
+  </div>
+
+  <div class="page">
+    <a target="_blank" href="https:://instagram.com/secomp.ufal" class="topbar">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" stroke-width="2" />
+        <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2" />
+        <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" />
+      </svg>
+      <span class="handle">@secomp.ufal</span>
+    </a>
+
+    <div class="hero">
+      <svg class="ic-logo" viewBox="0 0 69 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img"
+        aria-label="Logo do Instituto de Computação">
+        <path
+          d="M57.6047 25.5477C56.025 24.4057 54.2356 23.5856 52.3386 23.1343C50.4416 22.683 48.4742 22.6094 46.5487 22.9175C44.6231 23.2256 42.7773 23.9095 41.1164 24.9302C39.4556 25.9509 38.0123 27.2882 36.869 28.866C32.0615 35.4984 33.5506 44.7697 40.1915 49.571C42.7192 51.4029 45.7625 52.389 48.8857 52.388C53.4858 52.388 58.0236 50.2587 60.9272 46.2528C65.7347 39.6204 64.2456 30.3491 57.6047 25.5477Z" />
+        <path
+          d="M43.8917 53.2704C42.2187 52.736 40.6409 51.9405 39.217 50.9133C37.4597 49.6454 35.97 48.0438 34.8331 46.2003C33.6963 44.3568 32.9346 42.3074 32.5917 40.1696C32.2488 38.0317 32.3314 35.8473 32.8348 33.7414C33.3382 31.6354 34.2525 29.6493 35.5253 27.8966C36.315 26.8102 37.2328 25.8227 38.2588 24.9553C40.2326 23.297 42.5674 22.1227 45.0767 21.5264C47.586 20.9301 50.2002 20.9283 52.7103 21.5211V11.3716C51.4397 11.1867 50.1574 11.0939 48.8734 11.094C34.2477 11.094 22.3887 22.942 22.3887 37.549C22.3887 52.1561 34.2477 63.9999 48.8734 63.9999C50.1574 64 51.4397 63.9072 52.7103 63.7224V53.5936C49.7962 54.2907 46.7468 54.1789 43.8917 53.2704Z" />
+        <path
+          d="M21.177 16.3676C20.0941 15.5902 19.1809 14.6007 18.4933 13.4594C18.2863 13.1156 18.0993 12.7601 17.9333 12.3948C4.78426 20.6055 -2.19262 32.3707 0.615552 41.1241C2.24985 46.2279 6.71306 48.8254 13.2212 49.3142H13.2254C13.2354 49.3132 13.2448 49.3087 13.2517 49.3014C13.2587 49.2941 13.2628 49.2846 13.2633 49.2745C13.2638 49.2645 13.2607 49.2546 13.2545 49.2467C13.2483 49.2387 13.2394 49.2333 13.2295 49.2313C7.91183 48.3655 4.23673 45.8799 3.39469 42.5782C1.46174 34.9889 6.76699 24.4126 18.6177 16.467V62.7903H35.4585V62.26C34.6621 61.8292 33.8892 61.361 33.1398 60.8556C28.6157 57.8047 25.0743 53.5094 22.9441 48.4898C21.1183 44.1822 20.3995 39.4871 20.853 34.8315C21.3065 30.1758 22.9179 25.7072 25.5407 21.8318C26.4279 20.5225 27.4227 19.2893 28.5148 18.1448C28.0178 18.2206 27.5159 18.2594 27.0132 18.2608C24.9159 18.2644 22.8719 17.6013 21.177 16.3676Z" />
+        <path
+          d="M68.2521 13.6874C65.9168 7.11297 57.8656 3.41357 47.5828 3.41357C44.0529 3.41357 40.2575 3.84855 36.3418 4.7558C36.5846 5.39334 36.7611 6.05411 36.8686 6.7277C36.9512 7.23307 36.9928 7.74428 36.993 8.25635C41.2115 7.15026 45.2184 6.62 48.8894 6.62C56.5217 6.62 62.6938 8.90675 66.2735 13.037C69.1273 16.3304 68.613 21.0365 67.2607 24.4459C67.2584 24.4525 67.2576 24.4595 67.2586 24.4665C67.2596 24.4734 67.2622 24.48 67.2663 24.4857C67.2704 24.4914 67.2758 24.496 67.282 24.4992C67.2883 24.5024 67.2952 24.504 67.3022 24.5039C67.3092 24.5042 67.3161 24.5024 67.3221 24.4987C67.328 24.495 67.3327 24.4896 67.3354 24.4832C69.173 21.343 69.5048 17.2169 68.2521 13.6874Z" />
+        <path
+          d="M31.9121 1.57836C31.0282 0.93871 30.0267 0.479299 28.965 0.226381C27.9032 -0.0265363 26.8019 -0.0680016 25.7241 0.104355C24.6462 0.276712 23.613 0.659512 22.6833 1.23088C21.7537 1.80224 20.9459 2.55097 20.3061 3.43427C17.6141 7.1461 18.4437 12.3369 22.1644 15.0254C23.0483 15.6651 24.0498 16.1245 25.1116 16.3774C26.1734 16.6303 27.2747 16.6718 28.3525 16.4994C29.4303 16.3271 30.4636 15.9443 31.3932 15.3729C32.3229 14.8016 33.1307 14.0528 33.7704 13.1695C36.4625 9.4577 35.6329 4.26695 31.9121 1.57836ZM27.0549 14.1969C25.8875 14.1969 24.7463 13.8512 23.7756 13.2034C22.8049 12.5557 22.0484 11.635 21.6016 10.5578C21.1549 9.48065 21.038 8.29536 21.2657 7.15184C21.4935 6.00832 22.0556 4.95793 22.8811 4.1335C23.7066 3.30907 24.7584 2.74762 25.9033 2.52016C27.0483 2.2927 28.2351 2.40944 29.3137 2.85562C30.3922 3.3018 31.3141 4.05738 31.9627 5.02681C32.6113 5.99624 32.9574 7.13598 32.9574 8.3019C32.9562 9.86497 32.3339 11.3636 31.2272 12.4689C30.1205 13.5742 28.6199 14.1956 27.0549 14.1969Z" />
+        <path
+          d="M27.0549 12.5399C29.3984 12.5399 31.2983 10.6425 31.2983 8.30191C31.2983 5.96136 29.3984 4.06396 27.0549 4.06396C24.7113 4.06396 22.8115 5.96136 22.8115 8.30191C22.8115 10.6425 24.7113 12.5399 27.0549 12.5399Z" />
+      </svg>
+
+      <svg class="secomp-logo" viewBox="0 0 617 100" fill="none" xmlns="http://www.w3.org/2000/svg" role="img"
+        aria-label="SECOMP 26">
+        <g clip-path="url(#clipA)">
+          <path
+            d="M62.7597 86.0409L40.3342 98.9291L39.401 97.3147L61.8265 84.4265L62.7597 86.0409ZM2.18026 63.1842V77.8775L34.2791 97.326L33.3088 98.9182L0.311465 78.9257V63.1842H2.18026ZM72.5714 53.7825V78.8544L67.8538 82.5502L66.6992 81.085L70.7026 77.9485V54.8837L51.097 44.1245L51.998 42.4923L72.5714 53.7825ZM35.3334 68.8889L34.4349 70.523L13.411 59.0323L14.3095 57.3982L35.3334 68.8889ZM43.5899 3.51775L42.686 5.14879L37.2341 2.1448L1.86879 22.8786V39.4264H0V21.8128L37.2058 0L43.5899 3.51775ZM43.5732 37.2043L42.7027 38.8532L36.7848 35.7476L37.6554 34.0987L43.5732 37.2043ZM72.5714 19.776V26.5382H70.7026V20.8778L47.6712 8.25529L48.5716 6.62243L72.5714 19.776Z"
+            fill="#22BDA0" />
+          <path d="M16.3707 36.7673H15.3574V37.8531H16.3707V36.7673Z" fill="var(--ink)" />
+          <path d="M37.6872 98.2773H36.1299V99.8301H37.6872V98.2773Z" fill="var(--ink)" />
+          <path d="M21.3109 40.824H19.6221V41.9098H21.3109V40.824Z" fill="var(--ink)" />
+          <path d="M45.9174 53.5569H44.2285V55.1856H45.9174V53.5569Z" fill="var(--ink)" />
+          <path d="M47.9655 40.2029H46.4082V41.4451H47.9655V40.2029Z" fill="var(--ink)" />
+          <path d="M4.0494 52.3147H1.86914V54.7992H4.0494V52.3147Z" fill="var(--ink)" />
+          <path d="M72.571 29.3333H71.0137V30.5755H72.571V29.3333Z" fill="var(--ink)" />
+          <path d="M65.7194 82.7495H64.1621V83.9917H65.7194V82.7495Z" fill="var(--ink)" />
+          <path d="M46.4215 5.43506H44.5527V6.98785H46.4215V5.43506Z" fill="var(--ink)" />
+          <path d="M46.9083 20.9482H45.7852V21.8508H46.9083V20.9482Z" fill="var(--ink)" />
+          <path d="M24.794 77.47H23.6709V78.3726H24.794V77.47Z" fill="var(--ink)" />
+          <path opacity="0.82"
+            d="M67.2426 22.6534V30.1177H64.128V24.5519L37.0062 10.705L8.97793 26.2794V41.6578L51.7034 63.6357V69.6251L37.0396 78.9607L8.97793 63.7858V74.6978L36.9636 91.1483L64.128 74.7108V58.7537L20.8684 36.631V30.421L36.9487 21.8567L50.8381 28.7266L49.4541 31.5086L37.0013 25.3492L23.983 32.2828V34.7333L67.2426 56.8564V76.4589L36.9867 94.7671L5.86328 76.472V58.5687L36.9107 75.358L48.5888 67.9234V65.5278L5.86328 43.5503V24.4552L36.9441 7.18457L67.2426 22.6534Z"
+            fill="#5D13B7" />
+          <path
+            d="M58.2096 64.4752V72.8048L37.0804 85.6405L27.1093 80.1885L27.7082 79.0991L37.0476 84.2057L56.9637 72.1067V64.4752H58.2096ZM21.4944 75.0706L20.8642 76.1421L14.1494 72.2152L14.7796 71.1437L21.4944 75.0706ZM53.725 59.2288L53.1069 60.3072L49.8365 58.4439L50.4546 57.3654L53.725 59.2288ZM40.001 51.6095L39.4219 52.7092L24.0044 44.6346L24.5838 43.5349L40.001 51.6095ZM44.034 19.3031L43.4871 20.4192L37.0838 17.3012L15.7286 29.2313V33.0599H14.4828V28.5034L37.0442 15.8994L44.034 19.3031ZM57.8823 26.923L57.291 28.0167L48.9155 23.5136L49.5068 22.4199L57.8823 26.923Z"
+            fill="var(--ink)" />
+        </g>
+        <g clip-path="url(#clipB)">
+          <path
+            d="M301.324 29.8707V73.9532L305.795 78.2214H322.636V79.5493H305.263L299.996 74.5217V29.8707H301.324ZM344.921 39.2864V58.1181H343.593V39.2864H344.921ZM339.433 20.5654L341.949 22.9618L341.033 23.9236L338.901 21.8934H322.636V20.5654H339.433Z"
+            fill="#5D13B7" />
+          <path
+            d="M486.659 14.7002L495.858 23.9013V62.4753L487.566 70.7688L487.566 70.7686L486.659 71.6764H456.163V85.5251H441.656V14.7002H486.659ZM444.755 82.4265H453.065V68.5778H485.375L492.76 61.1918V25.1845L485.375 17.7988H444.755V82.4265ZM484.452 25.1847V61.1918H453.065V25.1847H484.452ZM456.163 58.0932H481.354V28.2833H456.163V58.0932Z"
+            fill="var(--ink)" />
+          <path
+            d="M378.446 14.7002L379.335 16.2614L396.586 46.4521L413.836 16.2616L413.836 16.2603L414.73 14.7002H430.148V85.5251H415.829V39.5946L402.043 63.6556L402.042 63.6554L401.153 65.2138H392.022L391.129 63.6565L391.128 63.6556L377.344 39.5953V85.5251H363.023V14.7002H378.446ZM366.122 82.4265H374.246V27.9548L393.816 62.1141L393.817 62.1152H399.354L399.355 62.115L418.928 27.9554V82.4265H427.049V17.7988H416.526L396.587 52.6975L376.645 17.7988H366.122V82.4265Z"
+            fill="var(--ink)" />
+          <path
+            d="M342.316 14.7002L343.223 15.6076L351.516 23.9013V76.324L350.608 77.2316L350.608 77.2314L342.316 85.5251H302.822L293.622 76.324V23.9013L302.822 14.7002H342.316ZM296.72 25.185V75.0404L304.106 82.4265H341.032L348.417 75.0408V25.1847L341.033 17.7988H304.106L296.72 25.185ZM340.109 25.1847V75.0406H305.029V25.1847H340.109ZM308.127 71.942H337.011V28.2833H308.127V71.942Z"
+            fill="var(--ink)" />
+          <path
+            d="M281.191 14.7002V28.4681H247.957V71.7572H282.114V85.5251H242.652L233.452 76.324V23.9013L242.652 14.7002H281.191ZM236.55 25.185V75.0404L243.936 82.4265H279.016V74.8558H244.859V25.3695H278.093V17.7988H243.936L236.55 25.185Z"
+            fill="var(--ink)" />
+          <path
+            d="M221.022 14.7002V28.2833H185.019V42.3977H216.406V55.9811H185.019V71.942H221.022V85.5251H170.514V14.7002H221.022ZM173.612 82.4265H217.924V75.0406H181.92V52.8825H213.308V45.4963H181.92V25.1847H217.924V17.7988H173.612V82.4265Z"
+            fill="var(--ink)" />
+          <path
+            d="M157.159 14.7002V29.3078H119.189V41.9901L157.159 45.0366V76.2049L149.004 85.5251H104.583V70.6962H141.873V57.3078L107.429 54.4934L104.583 54.2611V23.991L105.384 23.1059L112.99 14.7002H157.159ZM114.365 17.7988L107.681 25.185V51.405L144.971 54.4519V73.7948H107.681V82.4265H147.598L154.061 75.0406V47.8968L116.091 44.8501V26.2092H154.061V17.7988H114.365Z"
+            fill="var(--ink)" />
+          <path
+            d="M150.172 51.5513V74.7015L146.829 78.664H121.403V77.336H146.213L148.845 74.216V51.5513H150.172ZM112.55 38.3823V47.6214L127.545 48.8977L127.432 50.2209L111.223 48.8413V38.3823H112.55ZM150.283 21.4507V22.7787H123.505V21.4507H150.283Z"
+            fill="#5D13B7" />
+          <path
+            d="M178.278 72.2455V77.7787H214.461V79.1067H176.95V72.2455H178.278ZM209.482 48.1208V49.4488H200.077V48.1208H209.482ZM190.007 20.8975V22.2254H178.278V44.8009H176.95V20.8975H190.007Z"
+            fill="#5D13B7" />
+          <path
+            d="M268.46 78.2214V79.5494H250.866V78.2214H268.46ZM241.018 38.493V70.4749H239.69V38.493H241.018ZM274.657 20.8975V22.2254H245.592L243.127 24.4856L242.229 23.5065L245.075 20.8975H274.657Z"
+            fill="#5D13B7" />
+          <path
+            d="M370.482 44.5795V78.7747H369.154V44.5795H370.482ZM423.374 22.8893V66.491H422.046V22.8893H423.374ZM413.769 31.1887L398.529 57.6378H395.158V56.3099H397.762L412.619 30.5256L413.769 31.1887ZM374.843 21.0081L384.442 37.1577L383.3 37.8363L374.088 22.336H369.818V21.0081H374.843Z"
+            fill="#5D13B7" />
+          <path
+            d="M449.378 54.2073V80.1027H448.05V54.2073H449.378ZM484.455 64.2777V65.6057H465.976V64.2777H484.455ZM488.881 33.7345V51.8833H487.553V33.7345H488.881ZM477.926 21.3401V22.6681H449.378V31.0785H448.05V21.3401H477.926Z"
+            fill="#5D13B7" />
+          <path
+            d="M160.905 45.5755V78.0184L150.334 89.2877H100.932V67.0443H134.238V68.8149H102.702V87.5171H149.568L159.135 77.3179V45.5755H160.905ZM160.905 10.7163V33.1811H123.284V31.4105H159.135V12.4869H111.947L102.702 22.6777V53.6539H100.932V21.9943L111.162 10.7163H160.905Z"
+            fill="#22BDA0" />
+          <path
+            d="M224.641 71.9135V89.2877H171.307V87.5171H222.871V71.9135H224.641ZM224.641 10.7163V31.6318H188.458V38.9356H220.326V49.8914H218.555V40.7062H186.687V29.8612H222.871V12.4869H168.43V64.831H166.659V10.7163H224.641Z"
+            fill="#22BDA0" />
+          <path
+            d="M285.833 76.7827V89.2877H241.439L236.535 84.6169L237.756 83.3348L242.147 87.5171H284.062V76.7827H285.833ZM284.394 10.7163V31.7425H251.309V68.9256H249.539V29.9718H282.624V12.4869H241.943L231.392 23.2507V57.6378H229.621V22.5277L241.2 10.7163H284.394Z"
+            fill="#22BDA0" />
+          <path
+            d="M291.476 41.9235V77.1879L301.798 87.4064H343.251L347.756 83.32L348.946 84.6316L343.935 89.177H301.07L289.705 77.9267V41.9235H291.476ZM343.396 10.8269L354.99 21.9586V49.2273H353.22V22.7133L342.684 12.5975H303.094V10.8269H343.396Z"
+            fill="#22BDA0" />
+          <path
+            d="M361.186 57.0845V87.5171H379.444V65.3843H381.215V89.2877H359.416V57.0845H361.186ZM433.664 69.8108V89.2877H416.292V87.5171H431.894V69.8108H433.664ZM381.279 10.8269L396.809 37.2838L412.017 10.8269H433.664V48.1207H431.894V12.5975H413.042L396.825 40.8086L380.265 12.5975H360.301V10.8269H381.279Z"
+            fill="#22BDA0" />
+          <path
+            d="M499.393 24.1067V63.7592L487.92 75.2334H459.779V89.2877H447.607V87.5171H458.009V73.4628H487.186L497.622 63.0258V24.1067H499.393ZM468.853 10.7163V12.4869H439.419V85.0825H437.648V10.7163H468.853Z"
+            fill="#22BDA0" />
+        </g>
+        <g clip-path="url(#clipC)">
+          <path
+            d="M521.721 38.6727V68.0978H564.799V68.821H520.998V38.6727H521.721ZM567.474 57.311V65.6723H566.75V57.311H567.474ZM538.057 49.821V54.1625H564.799V54.8857H537.333V49.821H538.057ZM558.111 10.9631L567.474 20.3165V42.8533H566.75V20.6161L557.812 11.6864H521.721V25.5952H529.762V26.3184H520.998V10.9631H558.111ZM551.461 25.5952V31.8932H550.737V26.3184H545.958V25.5952H551.461Z"
+            fill="#22BDA0" />
+          <path
+            d="M616.301 45.1356V60.1181L607.789 68.1179L581.063 68.2796L574.061 62.3227L574.53 61.7718L581.327 67.5546L607.5 67.3962L615.578 59.8052V45.1356H616.301ZM602.255 43.4142V54.0535H601.532V44.1374H588.095V43.4142H602.255ZM616.301 10.7825V25.866H596.145V25.1428H615.578V11.5057H581.731L573.261 20.0618V39.8922H572.538V19.7645L581.429 10.7825H616.301Z"
+            fill="#22BDA0" />
+          <path
+            d="M529.679 38.6646V60.8656H546.699V61.9504H528.594V38.6646H529.679ZM558.706 60.8656V61.9504H555.461V60.8656H558.706ZM558.706 38.7168V39.8017H545.887V38.7168H558.706ZM558.164 24.2524H559.249V31.4498H558.164V24.2524ZM554.487 18.105V19.1898H530.635V18.105H554.487Z"
+            fill="#5D13B7" />
+          <path
+            d="M603.054 60.3232V61.408H586.733V60.3232H603.054ZM608.925 58.3244L606.845 60.5988L606.044 59.8668L608.124 57.5924L608.925 58.3244ZM609.519 45.3368V52.7191H608.434V45.3368H609.519ZM605.316 35.9144V36.9992H594.758V35.9144H605.316ZM594.582 17.1106V18.1954H584.624L580.946 22.2904V32.1175H579.861V21.8749L584.14 17.1106H594.582ZM607.642 17.1106V18.1954H604.112V17.1106H607.642Z"
+            fill="#5D13B7" />
+          <path
+            d="M613.769 13.2231V23.2524H586.289V31.4469H609.305L613.769 36.8423V59.4736L606.963 65.7472H582.223L575.069 59.4877V20.6402L582.751 13.2231H613.769ZM576.878 21.4076V58.6672L582.903 63.9392H606.256L611.961 58.6813V37.4931L608.454 33.255H584.481V21.4443H611.961V15.0312H583.482L576.878 21.4076ZM606.045 39.3279V57.807H584.481V39.3279H606.045ZM586.289 55.9989H604.237V41.1359H586.289V55.9989Z"
+            fill="var(--ink)" />
+          <path
+            d="M557.545 13.2231L564.852 20.6268V44.7188H535.277V56.443H564.852V66.4705H523.53V33.776H553.015V23.8907H523.53V13.2231H557.545ZM525.339 22.0826H554.823V35.5841H525.339V64.6624H563.044V58.251H533.469V42.9108H563.044V21.3686L556.789 15.0312H525.339V22.0826Z"
+            fill="var(--ink)" />
+        </g>
+        <defs>
+          <clipPath id="clipA">
+            <rect width="72.3602" height="100" fill="white" />
+          </clipPath>
+          <clipPath id="clipB">
+            <rect width="398.592" height="78.5675" fill="white" transform="translate(100.932 10.7163)" />
+          </clipPath>
+          <clipPath id="clipC">
+            <rect width="95.4362" height="58.3963" fill="white" transform="translate(520.88 10.7163)" />
+          </clipPath>
+        </defs>
+      </svg>
+
+      <p class="subtitle">
+        A Semana de Computação do IC está de volta<br>
+        <strong>8° edição. Mais inovação.</strong>
+      </p>
+
+      <div class="countdown" id="countdown">
+        <div class="count-cell">
+          <div class="count-box" id="cd-days">00</div>
+          <span class="count-label">DIAS</span>
+        </div>
+        <div class="count-cell">
+          <div class="count-box" id="cd-hours">00</div>
+          <span class="count-label">HORAS</span>
+        </div>
+        <div class="count-cell">
+          <div class="count-box" id="cd-min">00</div>
+          <span class="count-label">MIN</span>
+        </div>
+        <div class="count-cell">
+          <div class="count-box" id="cd-sec">00</div>
+          <span class="count-label">SEG</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">O FUTURO SEMPRE FOI RETRÔ</div>
+  </div>
+
+  <script>
+    // Edite esta data para a data real de início da SECOMP 26.
+    const TARGET_DATE = new Date('2026-10-26T09:00:00-03:00').getTime();
+
+    const els = {
+      days: document.getElementById('cd-days'),
+      hours: document.getElementById('cd-hours'),
+      min: document.getElementById('cd-min'),
+      sec: document.getElementById('cd-sec'),
+    };
+
+    function pad(n) { return String(Math.max(n, 0)).padStart(2, '0'); }
+
+    function tick() {
+      const diff = TARGET_DATE - Date.now();
+      if (diff <= 0) {
+        els.days.textContent = '00';
+        els.hours.textContent = '00';
+        els.min.textContent = '00';
+        els.sec.textContent = '00';
+        return;
+      }
+      const totalSeconds = Math.floor(diff / 1000);
+      const days = Math.floor(totalSeconds / 86400);
+      const hours = Math.floor((totalSeconds % 86400) / 3600);
+      const min = Math.floor((totalSeconds % 3600) / 60);
+      const sec = totalSeconds % 60;
+
+      els.days.textContent = pad(days);
+      els.hours.textContent = pad(hours);
+      els.min.textContent = pad(min);
+      els.sec.textContent = pad(sec);
+    }
+
+    tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+
+</html>
